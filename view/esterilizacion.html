@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanQue - Gestión de Máquinas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../stile.css">
+  <link rel="stylesheet" href="../esterilizacion.css">
+</head>
+
+
+</head>
+
+<body>
+
+  <header>
+    <nav>
+      <div class="logo">CleanQue</div>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="servicios.html">Servicios</a></li>
+        <li><a href="proveedores.html">Proveedores</a></li>
+        <li><a href="esterilizacion.html">Esterilización</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1 class="section-title">Gestión de Máquinas</h1>
+
+    <div class="machine-form">
+      <h3>Agregar nueva máquina</h3>
+      <div class="input-group">
+        <label>Nombre de la máquina</label>
+        <input type="text" id="nombreMaquina" placeholder="Ej. Autoclave Modelo X">
+      </div>
+      <div class="input-group">
+        <label>Tipo</label>
+        <input type="text" id="tipoMaquina" placeholder="Ej. Esterilizador, Secadora...">
+      </div>
+      <div class="input-group">
+        <label>Fecha de adquisición</label>
+        <input type="date" id="fechaMaquina">
+      </div>
+      <button class="btn" id="agregarMaquinaBtn">Agregar Máquina</button>
+    </div>
+
+    <div class="machine-list" id="machineList"></div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal" id="esterilizacionModal">
+    <div class="modal-content">
+      <span class="close-modal" id="closeModal">&times;</span>
+      <h3>Agregar Esterilización</h3>
+      <div class="input-group">
+        <label>Fecha</label>
+        <input type="date" id="fechaEsterilizacion">
+      </div>
+      <div class="input-group">
+        <label>Hora</label>
+        <input type="time" id="horaEsterilizacion">
+      </div>
+      <div class="input-group">
+        <label>Responsable</label>
+        <input type="text" id="responsableEsterilizacion" placeholder="Nombre del responsable">
+      </div>
+      <div class="input-group">
+        <label>Método</label>
+        <input type="text" id="metodoEsterilizacion" placeholder="Ej. Vapor, Calor seco...">
+      </div>
+      <div class="input-group">
+        <label>Observaciones</label>
+        <input type="text" id="observacionesEsterilizacion" placeholder="Opcional">
+      </div>
+      <button class="btn" id="guardarEsterilizacion">Guardar Esterilización</button>
+    </div>
+  </div>
+ <footer>
+        <div class="footer-content">
+            <h3 style="color: #ffffff;">Suscríbete a nuestro boletín</h3>
+            <div class="newsletter">
+                <input type="email" placeholder="Tu correo electrónico">
+                <button onclick="suscribir()">Suscribirse</button>
+            </div>
+            <p style="margin-top: 2rem; color: #ffffff;">© 2025 CleanQue. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+
+
+  <script>
+    const lista = document.getElementById("machineList");
+    const agregarBtn = document.getElementById("agregarMaquinaBtn");
+    const modal = document.getElementById("esterilizacionModal");
+    const closeModal = document.getElementById("closeModal");
+    const guardarEsterilizacion = document.getElementById("guardarEsterilizacion");
+
+    let maquinas = JSON.parse(localStorage.getItem("maquinas")) || [];
+    let maquinaActual = null;
+
+    agregarBtn.addEventListener("click", () => {
+      const nombre = document.getElementById("nombreMaquina").value.trim();
+      const tipo = document.getElementById("tipoMaquina").value.trim();
+      const fecha = document.getElementById("fechaMaquina").value;
+
+      if (!nombre || !tipo || !fecha) {
+        alert("⚠️ Por favor completa todos los campos");
+        return;
+      }
+
+      maquinas.push({
+        id: Date.now(),
+        nombre,
+        tipo,
+        fecha,
+        esterilizaciones: []
+      });
+
+      guardarEnLocal();
+      mostrarMaquinas();
+      limpiarFormulario();
+    });
+
+    function mostrarMaquinas() {
+      lista.innerHTML = "";
+      maquinas.forEach(m => {
+        const div = document.createElement("div");
+        div.classList.add("machine-card");
+        div.innerHTML = `
+          <h3>${m.nombre}</h3>
+          <p><b>Tipo:</b> ${m.tipo}</p>
+          <p><b>Fecha de adquisición:</b> ${m.fecha}</p>
+          <button class="btn-small" onclick="abrirModal(${m.id})">Agregar Esterilización</button>
+          <button class="btn-small" style="background:#b71c1c;" onclick="eliminarMaquina(${m.id})">Eliminar</button>
+          <button class="vermas-btn" onclick="toggleEsterilizaciones(${m.id})" id="vermas-${m.id}">Ver más</button>
+          <div id="esterilizaciones-${m.id}" style="display:none;">
+            ${m.esterilizaciones.length === 0 ? "<p><i>Sin esterilizaciones registradas</i></p>" : generarTabla(m.esterilizaciones)}
+          </div>
+        `;
+        lista.appendChild(div);
+      });
+    }
+
+    function generarTabla(esterilizaciones) {
+      return `
+        <div class="tabla-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Responsable</th>
+                <th>Método</th>
+                <th>Observaciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${esterilizaciones.map(e => `
+                <tr>
+                  <td>${e.fecha}</td>
+                  <td>${e.hora}</td>
+                  <td>${e.responsable}</td>
+                  <td>${e.metodo}</td>
+                  <td>${e.observaciones || "-"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function toggleEsterilizaciones(id) {
+      const section = document.getElementById(`esterilizaciones-${id}`);
+      const btn = document.getElementById(`vermas-${id}`);
+      if (section.style.display === "none") {
+        section.style.display = "block";
+        btn.textContent = "Ver menos";
+      } else {
+        section.style.display = "none";
+        btn.textContent = "Ver más";
+      }
+    }
+
+    function abrirModal(id) {
+      maquinaActual = id;
+      modal.style.display = "flex";
+    }
+
+    closeModal.addEventListener("click", () => modal.style.display = "none");
+
+    window.onclick = function(e) {
+      if (e.target === modal) modal.style.display = "none";
+    };
+
+    guardarEsterilizacion.addEventListener("click", () => {
+      const fecha = document.getElementById("fechaEsterilizacion").value;
+      const hora = document.getElementById("horaEsterilizacion").value;
+      const responsable = document.getElementById("responsableEsterilizacion").value.trim();
+      const metodo = document.getElementById("metodoEsterilizacion").value.trim();
+      const observaciones = document.getElementById("observacionesEsterilizacion").value.trim();
+
+      if (!fecha || !hora || !responsable || !metodo) {
+        alert("⚠️ Por favor completa todos los campos obligatorios");
+        return;
+      }
+
+      const nuevaEsterilizacion = { fecha, hora, responsable, metodo, observaciones };
+      const maquina = maquinas.find(m => m.id === maquinaActual);
+      maquina.esterilizaciones.push(nuevaEsterilizacion);
+      guardarEnLocal();
+      mostrarMaquinas();
+      modal.style.display = "none";
+    });
+
+    function eliminarMaquina(id) {
+      if (confirm("¿Seguro que deseas eliminar esta máquina?")) {
+        maquinas = maquinas.filter(m => m.id !== id);
+        guardarEnLocal();
+        mostrarMaquinas();
+      }
+    }
+
+    function limpiarFormulario() {
+      document.getElementById("nombreMaquina").value = "";
+      document.getElementById("tipoMaquina").value = "";
+      document.getElementById("fechaMaquina").value = "";
+    }
+
+    function guardarEnLocal() {
+      localStorage.setItem("maquinas", JSON.stringify(maquinas));
+    }
+
+    document.addEventListener("DOMContentLoaded", mostrarMaquinas);
+
+    // Menú responsive
+    document.getElementById("menuToggle").addEventListener("click", () => {
+      document.getElementById("navLinks").classList.toggle("active");
+    });
+  </script>
+  <script src="/js/navbar.js"></script>
+</body>
+</html>
